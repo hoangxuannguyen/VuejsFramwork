@@ -1,0 +1,3 @@
+alembic downgrade base
+alembic revision --autogenerate -m "add paying unit table"
+alembic upgrade head

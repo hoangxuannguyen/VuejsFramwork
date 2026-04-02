@@ -1,0 +1,166 @@
+import { defineStore } from 'pinia';
+import axios from 'axios';
+import Papa from 'papaparse';
+import { useAuthStore } from './auth';
+
+const API_BASE = process.env.API_URL || 'http://localhost:8000';
+
+export interface {{Entity}} {
+  id: number;
+{{entity_fields_interface}}
+}
+
+interface {{Entity}}Response {
+  data: {{Entity}}[];
+  total: number;
+}
+
+type CSV{{Entity}}Row = Omit<{{Entity}}, 'id'>;
+
+interface {{Entity}}State {
+  items: {{Entity}}[];
+  isLoading: boolean;
+  error: string | null;
+}
+
+export const use{{Entity_Plural}}Store = defineStore('{{entity_plural}}', {
+  state: (): {{Entity}}State => ({
+    items: [] as {{Entity}}[],
+    isLoading: false,
+    error: null,
+  }),
+
+  actions: {
+    getAuthHeader() {
+      const authStore = useAuthStore();
+      if (!authStore.token) throw new Error('Không có token xác thực');
+      return {
+        headers: { Authorization: `Bearer ${authStore.token}` },
+      };
+    },
+
+    async fetch{{Entity_Plural}}(): Promise<void> {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await axios.get<{{Entity}}Response | {{Entity}}[]>(
+          `${API_BASE}/{{entity_single_url}}/`,
+          this.getAuthHeader(),
+        );
+        
+        if (Array.isArray(response.data)) {
+          this.items = response.data;
+        } else if (response.data && 'data' in response.data) {
+          this.items = response.data.data;
+        }
+      } catch (err: unknown) {
+        this.handleError(err, 'Lỗi tải danh sách {{entity_single}}');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async create{{Entity}}(data: CSV{{Entity}}Row): Promise<void> {
+      this.isLoading = true;
+      try {
+        await axios.post(`${API_BASE}/{{entity_single_url}}/`, { id: 0, ...data }, this.getAuthHeader());
+        await this.fetch{{Entity_Plural}}();
+      } catch (err: unknown) {
+        this.handleError(err, 'Lỗi khi tạo mới');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async update{{Entity}}(id: number, data: Partial<CSV{{Entity}}Row>): Promise<void> {
+      this.isLoading = true;
+      try {
+        await axios.put(`${API_BASE}/{{entity_single_url}}/${id}`, data, this.getAuthHeader());
+        await this.fetch{{Entity_Plural}}();
+      } catch (err: unknown) {
+        this.handleError(err, 'Lỗi khi cập nhật');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async delete{{Entity}}(id: number): Promise<void> {
+      this.isLoading = true;
+      try {
+        await axios.delete(`${API_BASE}/{{entity_single_url}}/${id}`, this.getAuthHeader());
+        this.items = this.items.filter((item) => item.id !== id);
+      } catch (err: unknown) {
+        this.handleError(err, 'Lỗi khi xóa');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async importCSV(file: File): Promise<void> {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        await new Promise<void>((resolve, reject) => {
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (result) => {
+              const processRows = async () => {
+                try {
+                  // Thay thế any[] bằng Record để tránh lỗi ESLint "Unexpected any"
+                  const rows = result.data as Record<string, string>[];
+                  for (const row of rows) {
+                    const payload = {
+{{csv_mapping_logic}}
+                    };
+                    await axios.post(`${API_BASE}/{{entity_single_url}}/`, { id: 0, ...payload }, this.getAuthHeader());
+                  }
+                  resolve();
+                } catch (err) { 
+                  // Đảm bảo reject luôn trả về một Error object
+                  reject(err instanceof Error ? err : new Error(String(err))); 
+                }
+              };
+              void processRows();
+            },
+            error: (error: Error) => reject(error),
+          });
+        });
+        await this.fetch{{Entity_Plural}}();
+      } catch (err: unknown) {
+        this.handleError(err, 'Lỗi Import CSV');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    exportCSV(): void {
+      if (this.items.length === 0) return alert('Không có dữ liệu!');
+      const exportData = this.items.map((item): CSV{{Entity}}Row => ({
+{{csv_export_mapping}}
+      }));
+      const csv = Papa.unparse(exportData);
+      const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `{{entity_plural}}_export.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    },
+
+    handleError(err: unknown, defaultMsg: string) {
+      let message = defaultMsg;
+      if (axios.isAxiosError(err)) {
+        // Ép kiểu cục bộ để truy cập data mà không cần import AxiosError toàn cục
+        const responseData = err.response?.data as { detail?: string } | undefined;
+        message = responseData?.detail || err.message || defaultMsg;
+        if (err.response?.status === 401) useAuthStore().logout();
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      this.error = message;
+      // Không ném lỗi (throw) ở đây nếu bạn muốn UI chỉ hiển thị thông báo lỗi qua state.error
+      // Nếu vẫn muốn throw, hãy đảm bảo component bắt được nó.
+    },
+  },
+});

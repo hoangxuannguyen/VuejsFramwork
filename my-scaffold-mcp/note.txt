@@ -1,0 +1,56 @@
+{
+  "entity": "Product",
+  "api_endpoint": "products",
+  "fields": [
+    {
+      "name": "name",
+      "type": "string",
+      "label": "Tên sản phẩm",
+      "component": "q-input",
+      "required": true
+    },
+    {
+      "name": "price",
+      "type": "number",
+      "label": "Giá bán",
+      "component": "q-input",
+      "required": true
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "label": "Danh mục",
+      "component": "q-select",
+      "options": ["Điện tử", "Gia dụng", "Thời trang"]
+    },
+    {
+      "name": "is_active",
+      "type": "boolean",
+      "label": "Đang kinh doanh",
+      "component": "q-toggle"
+    }
+  ]
+}
+
+
+Prompt
+
+Hãy dùng tool save_manifest để lưu nội dung JSON sau vào đường dẫn D:/Projects/Insurance/my-scaffold-mcp/manifests/paying_unit.json.
+
+Nội dung JSON:
+
+JSON
+{
+  "entity": "PayingUnit",
+  "api_endpoint": "paying-units",
+  "stack": "fastapi",
+  "fields": [
+    { "name": "ten_cong_ty", "type": "string", "label": "Tên công ty" },
+    { "name": "ma_so_thue", "type": "string", "label": "Mã số thuế" },
+    { "name": "nguoi_dai_dien", "type": "string", "label": "Người đại diện" },
+    { "name": "dia_chi", "type": "string", "label": "Địa chỉ" },
+    { "name": "loai_cong_ty", "type": "string", "label": "Loại công ty", "component": "q-select", "options": ["Cổ phần", "TNHH", "Nhà nước", "Tư nhân"] }
+  ]
+}
+Sau khi ghi file xong, hãy gọi tool generate_from_manifest với đường dẫn đó để sinh code.
+

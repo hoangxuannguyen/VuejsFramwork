@@ -1,0 +1,12 @@
+{
+  "entity": "PayingUnit",
+  "api_endpoint": "paying-units",
+  "stack": "fastapi",
+  "fields": [
+    { "name": "ten_cong_ty", "type": "string", "label": "Tên công ty" },
+    { "name": "ma_so_thue", "type": "string", "label": "Mã số thuế" },
+    { "name": "nguoi_dai_dien", "type": "string", "label": "Người đại diện" },
+    { "name": "dia_chi", "type": "string", "label": "Địa chỉ" },
+    { "name": "loai_cong_ty", "type": "string", "label": "Loại công ty", "component": "q-select", "options": ["Cổ phần", "TNHH", "Nhà nước", "Tư nhân"] }
+  ]
+}
